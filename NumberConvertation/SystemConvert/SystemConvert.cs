@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Windows.Controls;
 
+namespace NumberConvertation.SystemConvert;
+
 class SystemConvert
 {
 	private int accuracy;
@@ -9,12 +11,9 @@ class SystemConvert
 	private int secondSystem;
 	private TextBox firstExpression;
 	private TextBox secondExpression;
-	private TextConvert textConvert;
+	private readonly TextConvert textConvert;
 
-	public SystemConvert()
-	{
-	}
-	public SystemConvert(TextBox firstExpression, TextBox secondExpression)
+	private SystemConvert(TextBox firstExpression, TextBox secondExpression)
 	{
 		this.firstExpression = firstExpression;
 		this.secondExpression = secondExpression;
@@ -44,51 +43,51 @@ class SystemConvert
 
 	private void Convert(TextBox expression, TextBox result, int firstSystem, int secondSystem)
 	{
-		if (expression != null && result != null && firstSystem != 0 && secondSystem != 0)
+		if (expression.Text == string.Empty || result.Text == string.Empty || firstSystem == 0 ||
+		    secondSystem == 0) return;
+		var isSigned = false;
+		var floatPosition = 0;
+		var errors = new List<int>();
+		var numbers = textConvert.Convert(expression.Text, ref isSigned, ref floatPosition, errors);
+		if (errors.Count != 0)
 		{
-			bool isSigned = false;
-			int floatPosition = 0;
-			List<int> errors = new List<int>();
-			int[] numbers = textConvert.Convert(expression.Text, ref isSigned, ref floatPosition, errors);
-			if (errors.Count != 0)
+			foreach (var i in errors)
 			{
-				foreach (var i in errors)
-				{
-					expression.Delete(i);
-				}
-				return;
+				expression.Delete(i);
 			}
-			double multiplier = Math.Pow(firstSystem, isSigned ? floatPosition - 2 : floatPosition - 1);
-			result.Text = "";
-			if (isSigned)
+			return;
+		}
+		var multiplier = Math.Pow(firstSystem, isSigned ? floatPosition - 2 : floatPosition - 1);
+		result.Text = "";
+		if (isSigned)
+		{
+			result.Text += "-";
+		}
+		double decResult = 0;
+		foreach (var t in numbers)
+		{
+			decResult += t * multiplier;
+			multiplier /= firstSystem;
+		}
+
+		var intDecResult = (int)Math.Floor(decResult);
+		var resultWithoutSign = "";
+		while (intDecResult >= secondSystem)
+		{
+			resultWithoutSign = textConvert.Convert(intDecResult % secondSystem) + resultWithoutSign;
+			intDecResult = intDecResult / secondSystem;
+		}
+		resultWithoutSign = textConvert.Convert(intDecResult) + resultWithoutSign;
+		result.Text += resultWithoutSign;
+		if (floatPosition == expression.Text.Length) return;
+		{
+			var floatPart = decResult - (int)decResult;
+			result.Text += '.';
+			for (var i = 0; i < System.Convert.ToInt32(accuracy); i++)
 			{
-				result.Text += "-";
-			}
-			double decResult = 0;
-			for (int i = 0; i < numbers.Length; i++)
-			{
-				decResult += numbers[i] * multiplier;
-				multiplier /= firstSystem;
-			}
-			int intDecResult = (int)Math.Floor(decResult);
-			string resultWithoutSign = "";
-			while (intDecResult >= secondSystem)
-			{
-				resultWithoutSign = textConvert.Convert(intDecResult % (int)secondSystem) + resultWithoutSign;
-				intDecResult = intDecResult / (int)secondSystem;
-			}
-			resultWithoutSign = textConvert.Convert(intDecResult) + resultWithoutSign;
-			result.Text += resultWithoutSign;
-			if (floatPosition != expression.Text.Length)
-			{
-				double floatPart = decResult - (int)decResult;
-				result.Text += '.';
-				for (int i = 0; i < System.Convert.ToInt32(accuracy); i++)
-				{
-					floatPart *= secondSystem;
-					result.Text += (textConvert.Convert((int)floatPart));
-					floatPart -= (int)floatPart;
-				}
+				floatPart *= secondSystem;
+				result.Text += (textConvert.Convert((int)floatPart));
+				floatPart -= (int)floatPart;
 			}
 		}
 	}
